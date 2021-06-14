@@ -2,17 +2,13 @@ module Data.Tree where
 
 import Prelude
 
-import Data.String as String
-
 data Tree
   = Leaf Int
   | Branch Tree Tree
 
 instance Show Tree where
-  show t = "[" <> (_.after <<< String.splitAt 2 <<< items $ t) <> "]"
-    where
-      items (Leaf i) = ", " <> show i
-      items (Branch l r) = items l <> items r
+  show (Leaf i) = show i
+  show (Branch l r) = "(" <> show l <> ", " <> show r <> ")"
 --|           .
 --|         /   \
 --|       .      \
