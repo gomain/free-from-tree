@@ -2,12 +2,12 @@ module Data.Tree where
 
 import Prelude
 
-data Tree
-  = Leaf Int
-  | Branch Tree Tree
+data Tree a
+  = Leaf a
+  | Branch (Tree a) (Tree a)
 
-instance Show Tree where
-  show (Leaf i) = show i
+instance Show a => Show (Tree a) where
+  show (Leaf a) = show a
   show (Branch l r) = "(" <> show l <> ", " <> show r <> ")"
 --|           .
 --|         /   \
@@ -16,7 +16,7 @@ instance Show Tree where
 --|   .       .    \
 --|  / \     / \    \
 --| 1   2   3   4    5
-tree :: Tree
+tree :: Tree Int
 tree
   = Branch
      (Branch
