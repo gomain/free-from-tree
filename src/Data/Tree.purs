@@ -2,18 +2,24 @@ module Data.Tree where
 
 import Prelude
 
-import Data.Generic.Rep (class Generic)
-import Data.Show.Generic (genericShow)
+import Data.String as String
 
 data Tree
   = Leaf Int
   | Branch Tree Tree
 
-derive instance Generic Tree _
-
 instance Show Tree where
-  show t = genericShow t
-
+  show t = "[" <> (_.after <<< String.splitAt 2 <<< items $ t) <> "]"
+    where
+      items (Leaf i) = ", " <> show i
+      items (Branch l r) = items l <> items r
+--|           .
+--|         /   \
+--|       .      \
+--|     /   \     \
+--|   .       .    \
+--|  / \     / \    \
+--| 1   2   3   4    5
 tree :: Tree
 tree
   = Branch
