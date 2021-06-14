@@ -4,19 +4,19 @@ import Prelude
 
 import Partial.Unsafe (unsafePartial)
 
-data Math
-  = Lit Int
-  | Add Math Math
-  | Sub Math Math
-  | Mul Math Math
-  | Div Math Math
-  | Neg Math
+data Math a
+  = Lit a
+  | Add (Math a) (Math a)
+  | Sub (Math a) (Math a)
+  | Mul (Math a) (Math a)
+  | Div (Math a) (Math a)
+  | Neg (Math a)
 
-instance Show Math where
-  show (Lit i) = show i
+instance Show a => Show (Math a) where
+  show (Lit a) = show a
   show grouped = "(" <> unsafePartial showOp grouped <> ")"
     where
-      showOp :: Partial => Math -> String
+      showOp :: Partial => forall a. Show a => Math a -> String
       showOp (Add l r) = show l <> " + " <> show r
       showOp (Sub l r) = show l <> " - " <> show r
       showOp (Mul l r) = show l <> " * " <> show r
@@ -31,7 +31,7 @@ instance Show Math where
 --|  (*)     (/)  (-)
 --|  / \     / \    \
 --| 1   2   3   4    5
-expr :: Math
+expr :: Math Int
 expr
   = Add
      (Sub
