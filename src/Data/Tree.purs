@@ -4,11 +4,18 @@ import Prelude
 
 data Tree a
   = Leaf a
-  | Branch (Tree a) (Tree a)
+  | Branch (Pair a)
+
+data Pair a
+  = Pair (Tree a) (Tree a)
 
 instance Show a => Show (Tree a) where
   show (Leaf a) = show a
-  show (Branch l r) = "(" <> show l <> ", " <> show r <> ")"
+  show (Branch (Pair l r)) = "(" <> show l <> ", " <> show r <> ")"
+
+branch :: forall a. Tree a -> Tree a -> Tree a
+branch l r = Branch (Pair l r)
+
 --|           .
 --|         /   \
 --|       .      \
@@ -18,12 +25,12 @@ instance Show a => Show (Tree a) where
 --| 1   2   3   4    5
 tree :: Tree Int
 tree
-  = Branch
-     (Branch
-      (Branch
+  = branch
+     (branch
+      (branch
        (Leaf 1)
        (Leaf 2))
-      (Branch
+      (branch
        (Leaf 3)
        (Leaf 4)))
      (Leaf 5)
