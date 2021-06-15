@@ -4,10 +4,10 @@ import Prelude
 
 data Tree a
   = Leaf a
-  | Branch (Pair a)
+  | Branch (Pair (Tree a))
 
 data Pair a
-  = Pair (Tree a) (Tree a)
+  = Pair a a
 
 instance Show a => Show (Tree a) where
   show (Leaf a) = show a
