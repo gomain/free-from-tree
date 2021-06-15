@@ -4,20 +4,20 @@ import Prelude hiding (add, sub, mul, div)
 
 data Math a
   = Lit a
-  | Op (Operation a)
+  | Op (Operation (Math a))
 
 data Operation a
-  = Add (Math a) (Math a)
-  | Sub (Math a) (Math a)
-  | Mul (Math a) (Math a)
-  | Div (Math a) (Math a)
-  | Neg (Math a)
+  = Add a a
+  | Sub a a
+  | Mul a a
+  | Div a a
+  | Neg a
 
 instance Show a => Show (Math a) where
   show (Lit a) = show a
   show (Op operation) = "(" <> showOp operation <> ")"
     where
-      showOp :: Operation a -> String
+      showOp :: Operation (Math a) -> String
       showOp (Add l r) = show l <> " + " <> show r
       showOp (Sub l r) = show l <> " - " <> show r
       showOp (Mul l r) = show l <> " * " <> show r
