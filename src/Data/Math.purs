@@ -2,9 +2,11 @@ module Data.Math where
 
 import Prelude hiding (add, sub, mul, div)
 
-data Math a
-  = Lit a
-  | Op (Operation (Math a))
+import Data.AST (AST)
+import Data.AST as AST
+import Data.Show1 (class Show1)
+
+type Math a = AST Operation a
 
 data Operation a
   = Add a a
@@ -13,31 +15,33 @@ data Operation a
   | Div a a
   | Neg a
 
-instance Show a => Show (Math a) where
-  show (Lit a) = show a
-  show (Op operation) = "(" <> showOp operation <> ")"
+instance Show1 Operation where
+  show1 operation = "(" <> showOp operation <> ")"
     where
-      showOp :: Operation (Math a) -> String
+      showOp :: forall a. Show a => Operation a -> String
       showOp (Add l r) = show l <> " + " <> show r
       showOp (Sub l r) = show l <> " - " <> show r
       showOp (Mul l r) = show l <> " * " <> show r
       showOp (Div l r) = show l <> " / " <> show r
       showOp (Neg e) = "-" <> show e
 
+lit :: forall a. a -> Math a
+lit = AST.leaf
+
 add :: forall a. Math a -> Math a -> Math a
-add l r = Op (Add l r)
+add = AST.branchWith2 Add
 
 sub :: forall a. Math a -> Math a -> Math a
-sub l r = Op (Sub l r)
+sub = AST.branchWith2 Sub
 
 mul :: forall a. Math a -> Math a -> Math a
-mul l r = Op (Mul l r)
+mul = AST.branchWith2 Mul
 
 div :: forall a. Math a -> Math a -> Math a
-div l r = Op (Mul l r)
+div = AST.branchWith2 Div
 
 neg :: forall a. Math a -> Math a
-neg = Op <<< Neg
+neg = AST.branchWith1 Neg
 
 --|          (+)
 --|         /   \
@@ -51,10 +55,10 @@ expr
   = add
      (sub
       (mul
-       (Lit 1)
-       (Lit 2))
+       (lit 1)
+       (lit 2))
       (div
-       (Lit 3)
-       (Lit 4)))
+       (lit 3)
+       (lit 4)))
      (neg
-      (Lit 5))
+      (lit 5))

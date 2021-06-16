@@ -2,19 +2,23 @@ module Data.Tree where
 
 import Prelude
 
-data Tree a
-  = Leaf a
-  | Branch (Pair (Tree a))
+import Data.AST (AST)
+import Data.AST as AST
+import Data.Show1 (class Show1)
+
+type Tree a = AST Pair a
 
 data Pair a
   = Pair a a
 
-instance Show a => Show (Tree a) where
-  show (Leaf a) = show a
-  show (Branch (Pair l r)) = "(" <> show l <> ", " <> show r <> ")"
+instance Show1 Pair where
+  show1 (Pair l r) = "(" <> show l <> ", " <> show r <> ")"
+
+leaf :: forall a. a -> Tree a
+leaf = AST.leaf
 
 branch :: forall a. Tree a -> Tree a -> Tree a
-branch l r = Branch (Pair l r)
+branch = AST.branchWith2 Pair
 
 --|           .
 --|         /   \
@@ -28,9 +32,9 @@ tree
   = branch
      (branch
       (branch
-       (Leaf 1)
-       (Leaf 2))
+       (leaf 1)
+       (leaf 2))
       (branch
-       (Leaf 3)
-       (Leaf 4)))
-     (Leaf 5)
+       (leaf 3)
+       (leaf 4)))
+     (leaf 5)
