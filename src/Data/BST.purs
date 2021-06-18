@@ -2,20 +2,19 @@ module Data.BST where
 
 import Prelude
 
+import Data.Maybe (Maybe(..), maybe)
+
 --| a binary search tree
-data BST a
-  = Nothing
-  | Branch a (BST a) (BST a)
+data BST a = BST a (Maybe (BST a)) (Maybe (BST a))
 
 instance Show a => Show (BST a) where
-  show Nothing = "Nothing"
-  show (Branch a l r) = "[" <> show l <> ", " <> show a <> ", " <> show r <> "]"
+  show (BST a l r) = "[" <> maybe "Nothing" show l <> ", " <> show a <> ", " <> maybe "Nothing" show r <> "]"
 
 leaf :: forall a. a -> BST a
-leaf a = Branch a Nothing Nothing
+leaf a = BST a Nothing Nothing
 
 branch :: forall a. a -> BST a -> BST a -> BST a
-branch = Branch
+branch a l r = BST a (Just l) (Just r)
 
 bst :: BST Int
 bst = branch 4
