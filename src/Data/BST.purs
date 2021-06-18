@@ -4,15 +4,15 @@ import Prelude
 
 --| a binary search tree
 data BST a
-  = Leaf a
+  = Nothing
   | Branch a (BST a) (BST a)
 
 instance Show a => Show (BST a) where
-  show (Leaf a) = show a
+  show Nothing = "Nothing"
   show (Branch a l r) = "[" <> show l <> ", " <> show a <> ", " <> show r <> "]"
 
 leaf :: forall a. a -> BST a
-leaf = Leaf
+leaf a = Branch a Nothing Nothing
 
 branch :: forall a. a -> BST a -> BST a -> BST a
 branch = Branch
