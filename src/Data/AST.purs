@@ -14,7 +14,7 @@ data AST f a
 
 instance (Show a, Show1 f) => Show (AST f a) where
   show (Leaf a) = show a
-  show (Branch pair) = show1 pair
+  show (Branch branch) = show1 branch
 
 leaf :: forall f a. a -> AST f a
 leaf = Leaf
