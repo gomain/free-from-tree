@@ -5,7 +5,7 @@ import Prelude
 import Data.Functor.Compose (Compose)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap, wrap)
-import Data.Tree (Pair(..))
+import Data.Pair (Pair(..))
 
 --| a binary search tree
 data BST a = BST a (Compose Pair Maybe (BST a))

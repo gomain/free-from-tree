@@ -1,20 +1,10 @@
 module Data.Tree where
 
-import Prelude
-
 import Data.AST (AST)
 import Data.AST as AST
+import Data.Pair (Pair(..))
 
 type Tree a = AST Pair a
-
-data Pair a
-  = Pair a a
-
-instance Functor Pair where
-  map f (Pair l r) = Pair (f l) (f r)
-
-instance Show a => Show (Pair a) where
-  show (Pair l r) = "(" <> show l <> ", " <> show r <> ")"
 
 leaf :: forall a. a -> Tree a
 leaf = AST.leaf
