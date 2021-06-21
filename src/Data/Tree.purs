@@ -4,15 +4,17 @@ import Prelude
 
 import Data.AST (AST)
 import Data.AST as AST
-import Data.Show1 (class Show1)
 
 type Tree a = AST Pair a
 
 data Pair a
   = Pair a a
 
-instance Show1 Pair where
-  show1 (Pair l r) = "(" <> show l <> ", " <> show r <> ")"
+instance Functor Pair where
+  map f (Pair l r) = Pair (f l) (f r)
+
+instance Show a => Show (Pair a) where
+  show (Pair l r) = "(" <> show l <> ", " <> show r <> ")"
 
 leaf :: forall a. a -> Tree a
 leaf = AST.leaf
