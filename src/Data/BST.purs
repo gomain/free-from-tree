@@ -2,24 +2,21 @@ module Data.BST where
 
 import Prelude
 
+import Data.Annotated (Annotated)
+import Data.Annotated as Ann
 import Data.Functor.Compose (Compose)
-import Data.Maybe (Maybe(..), maybe)
-import Data.Newtype (unwrap, wrap)
+import Data.Maybe (Maybe(..))
+import Data.Newtype (wrap)
 import Data.Pair (Pair(..))
 
 --| a binary search tree
-data BST a = BST a (Compose Pair Maybe (BST a))
-
-instance Show a => Show (BST a) where
-  show (BST a cmp)
-    = let Pair l r = unwrap cmp
-      in "[" <> maybe "Nothing" show l <> ", " <> show a <> ", " <> maybe "Nothing" show r <> "]"
+type BST a = Annotated (Compose Pair Maybe) a
 
 leaf :: forall a. a -> BST a
-leaf a = BST a $ wrap (Pair Nothing Nothing)
+leaf a = Ann.branch a $ wrap (Pair Nothing Nothing)
 
 branch :: forall a. a -> BST a -> BST a -> BST a
-branch a l r = BST a $ wrap (Pair (Just l) (Just r))
+branch a l r = Ann.branch a $ wrap (Pair (Just l) (Just r))
 
 bst :: BST Int
 bst = branch 4
