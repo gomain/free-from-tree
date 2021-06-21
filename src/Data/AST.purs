@@ -6,13 +6,14 @@ module Data.AST
 
 import Prelude
 
-import Data.Show1 (class Show1, show1)
+import Data.Functor.Show1 (show1)
+import Data.TacitString (TacitString)
 
 data AST f a
   = Leaf a
   | Branch (f (AST f a))
 
-instance (Show a, Show1 f) => Show (AST f a) where
+instance (Functor f, Show (f TacitString), Show a) => Show (AST f a) where
   show (Leaf a) = show a
   show (Branch branch) = show1 branch
 

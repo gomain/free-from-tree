@@ -4,7 +4,6 @@ import Prelude hiding (apply)
 
 import Data.AST (AST)
 import Data.AST as AST
-import Data.Show1 (class Show1)
 
 type MyLang = AST Operation Term
 
@@ -19,13 +18,18 @@ data Term
   = Var Identifier
   | Num Number
 
-instance Show1 Operation where
-  show1 (LetIn ident letExpr inExpr)
+instance Show a => Show (Operation a) where
+  show (LetIn ident letExpr inExpr)
     = "let " <> ident <> " = " <> show letExpr <> "\n"
     <> "in " <> show inExpr
-  show1 (Function ident expr)
+  show (Function ident expr)
     = "\\" <> ident <> " -> " <> show expr
-  show1 (Apply func arg) = show func <> " " <> show arg
+  show (Apply func arg) = show func <> " " <> show arg
+
+instance Functor Operation where
+  map f (LetIn ident letExpr inExpr) = LetIn ident (f letExpr) (f inExpr)
+  map f (Function ident expr) =  Function ident (f expr)
+  map f (Apply func arg) = Apply (f func) (f arg)
 
 instance Show Term where
   show (Var ident) = ident

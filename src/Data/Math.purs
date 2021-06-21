@@ -4,7 +4,6 @@ import Prelude hiding (add, sub, mul, div)
 
 import Data.AST (AST)
 import Data.AST as AST
-import Data.Show1 (class Show1)
 
 type Math a = AST Operation a
 
@@ -15,15 +14,21 @@ data Operation a
   | Div a a
   | Neg a
 
-instance Show1 Operation where
-  show1 operation = "(" <> showOp operation <> ")"
+instance Show a => Show (Operation a) where
+  show operation = "(" <> showOp operation <> ")"
     where
-      showOp :: forall a. Show a => Operation a -> String
       showOp (Add l r) = show l <> " + " <> show r
       showOp (Sub l r) = show l <> " - " <> show r
       showOp (Mul l r) = show l <> " * " <> show r
       showOp (Div l r) = show l <> " / " <> show r
       showOp (Neg e) = "-" <> show e
+
+instance Functor Operation where
+  map f (Add l r) = Add (f l) (f r)
+  map f (Sub l r) = Sub (f l) (f r)
+  map f (Mul l r) = Mul (f l) (f r)
+  map f (Div l r) = Div (f l) (f r)
+  map f (Neg e) = Neg (f e)
 
 lit :: forall a. a -> Math a
 lit = AST.leaf
