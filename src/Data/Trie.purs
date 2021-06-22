@@ -2,7 +2,7 @@ module Data.Trie where
 
 import Prelude
 
-import Control.Plus (empty)
+import Control.Plus as P
 import Data.Annotated (Annotated(..))
 import Data.Annotated as Ann
 import Data.Array as A
@@ -16,6 +16,12 @@ import Data.Tuple (Tuple(..))
 type StrMap = Map String
 
 type Trie a = Annotated StrMap (Maybe a)
+
+empty :: forall a. Trie a
+empty = Ann.leaf Nothing
+
+singleton :: forall a. String -> a -> Trie a
+singleton k v = insert k v empty
 
 commonPrefix :: String -> String -> { common :: String, rest1 :: String, rest2 :: String }
 commonPrefix s1 s2
@@ -53,7 +59,7 @@ insert k v (Ann a strMap)
                      newTrie
                        = Ann Nothing
                          $ M.insert restk (Ann.leaf (Just v))
-                         $ M.insert restKey subTrie empty
+                         $ M.insert restKey subTrie P.empty
         Nothing -- did not find a less than or equal key, find next greater key
           -> case M.lookupGT k strMap of
           Just { key, value: subTrie } -- found next greater keys
@@ -68,7 +74,6 @@ insert k v (Ann a strMap)
                      newTrie
                        = Ann (Just v)
                          $ M.singleton restKey subTrie
-
                "", _, _ -- have nothing in common, insert new trie
                  -> Ann a $ M.insert k (Ann.leaf (Just v)) strMap
                common, restKey, restk  -- key and k share a prefix, extend level
@@ -79,7 +84,7 @@ insert k v (Ann a strMap)
                      newTrie
                        = Ann Nothing
                          $ M.insert restk (Ann.leaf (Just v))
-                         $ M.insert restKey subTrie empty
+                         $ M.insert restKey subTrie P.empty
           Nothing -- trie as no keys, just insert
             -> Ann a $ M.insert k (Ann.leaf (Just v)) strMap
 
