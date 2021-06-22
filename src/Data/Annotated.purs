@@ -7,6 +7,7 @@ module Data.Annotated
 import Prelude
 
 import Control.Plus (class Plus, empty)
+import Data.Eq (class Eq1, eq1)
 import Data.Functor.Show1 (show1)
 import Data.TacitString (TacitString)
 
@@ -20,3 +21,6 @@ leaf = flip Ann empty
 
 branch :: forall f a. a -> f (Annotated f a) -> Annotated f a
 branch = Ann
+
+instance (Eq1 f, Eq a) => Eq (Annotated f a) where
+  eq (Ann lv lf) (Ann rv rf) = lv == rv && lf `eq1` rf
