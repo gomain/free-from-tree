@@ -1,5 +1,5 @@
 module Data.Annotated
-       ( Annotated
+       ( Annotated(..)
        , leaf
        , branch
        ) where
