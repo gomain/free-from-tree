@@ -1,4 +1,12 @@
-module Data.Trie where
+module Data.Trie
+       ( StrMap, Trie
+       , empty
+       , singleton
+       , root
+       , toLookupTrie
+       , insert
+       , lookup
+       ) where
 
 import Prelude
 
@@ -51,10 +59,6 @@ updateImediateSubTrie :: forall a. (Trie a -> Trie a)
 updateImediateSubTrie f k
   = alterImediateSubTrie (map f) k
 
-setImediateValue :: forall a. String -> a -> Trie a -> Trie a
-setImediateValue k v
-  = updateImediateSubTrie (setValue v) k
-
 setImediateSubTrie :: forall a. String -> Trie a -> Trie a -> Trie a
 setImediateSubTrie k trie
   = alterImediateSubTrie (const $ Just trie) k
@@ -87,8 +91,9 @@ insert k v trie
                     $ trie
                  where
                    newTrie
-                     = setImediateSubTrie restKey subTrie
-                       $ root v
+                     = setValue v
+                       $ setImediateSubTrie restKey subTrie
+                       $ empty
                common, restKey, restk  -- key and k share a prefix, extend level
                  -> setImediateSubTrie common newTrie
                     $ deleteImediateSubTrie key
@@ -105,3 +110,21 @@ insert k v trie
 toLookupTrie :: forall a. Array (Tuple String a) -> Trie a
 toLookupTrie = foldl (\trie (Tuple k v) -> insert k v trie) empty
 
+value :: forall a. Trie a -> Maybe a
+value (Ann v _) = v
+
+lookupImediateSubTrie :: forall a. String -> Trie a -> Maybe (Trie a)
+lookupImediateSubTrie k (Ann _ strMap)
+  = M.lookup k strMap
+
+lookup :: forall a. String -> Trie a -> Maybe a
+lookup k trie
+  = case k of
+    ""
+      -> value trie
+    _
+      -> let allSplits = map (\i -> S.splitAt i k) $ A.range 0 $ S.length k
+         in foldl (\found try -> found <|> try) Nothing
+            $ allSplits <#> \{ before, after } -> do
+              subTrie <- lookupImediateSubTrie before trie
+              lookup after subTrie
