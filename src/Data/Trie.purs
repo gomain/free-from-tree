@@ -6,6 +6,7 @@ module Data.Trie
        , toLookupTrie
        , insert
        , lookup
+       , delete
        ) where
 
 import Prelude
@@ -14,6 +15,7 @@ import Control.Alt ((<|>))
 import Data.Annotated (Annotated(..))
 import Data.Annotated as Ann
 import Data.Array as A
+import Data.Bifunctor (lmap)
 import Data.Foldable (foldl)
 import Data.Map (Map)
 import Data.Map as M
@@ -103,9 +105,10 @@ insert k v trie
                      = setImediateSubTrie restk (root v)
                        $ setImediateSubTrie restKey subTrie
                        $ empty
-  where
-    lookupNearestSubTrie key (Ann _ strMap)
-      = key `M.lookupLE` strMap <|> key `M.lookupGT` strMap
+
+lookupNearestSubTrie :: forall a. String -> Trie a -> Maybe { key :: String, value :: Trie a }
+lookupNearestSubTrie key (Ann _ strMap)
+  = key `M.lookupLE` strMap <|> key `M.lookupGT` strMap
 
 toLookupTrie :: forall a. Array (Tuple String a) -> Trie a
 toLookupTrie = foldl (\trie (Tuple k v) -> insert k v trie) empty
@@ -128,3 +131,37 @@ lookup k trie
             $ allSplits <#> \{ before, after } -> do
               subTrie <- lookupImediateSubTrie before trie
               lookup after subTrie
+
+deleteValue :: forall a. Trie a -> Trie a
+deleteValue (Ann _ strMap)
+  = Ann Nothing strMap
+
+mapKey :: forall k l v. Ord l => (k -> l) -> Map k v -> Map l v
+mapKey f = M.fromFoldable <<< map (lmap f) <<< (M.toUnfoldable :: _ -> Array _)
+
+removeImediateSubTrie :: forall a. String -> Trie a -> Trie a
+removeImediateSubTrie k trie@(Ann a strMap)
+  = case k `M.lookup` strMap of
+    Nothing
+      -> trie
+    Just (Ann _ subStrMap)
+      -> Ann a $ mapKey (k <> _) subStrMap `M.union` M.delete k strMap
+
+delete :: forall a. String -> Trie a -> Trie a
+delete k trie
+  = case k of
+    "" -- case1: trie is root, can't remove, set value to Nothing
+      -> deleteValue trie
+    _ -- otherwise, look for equal or nearest key
+      -> case k `lookupNearestSubTrie` trie of
+        Nothing -- trie has no keys, we're done
+          -> trie
+        Just { key } -- found a key
+          -> let { rest1, rest2 } = commonPrefix key k
+             in case rest1, rest2 of
+               "", "" -- equal, remove this trie
+                 -> removeImediateSubTrie k trie
+               "", restK -- found key is prefix of k, delete in sub trie
+                 -> updateImediateSubTrie (delete restK) key trie
+               _, _ -- we're done
+                 -> trie
