@@ -86,22 +86,68 @@ main
                , Tuple "c" $ Ann.leaf $ Just 3
                ])
               $ Trie.insert "c" 3 bb22
-    test "toLookupTrie" do
-      Assert.equal
-        (Ann Nothing $ M.fromFoldable
-         [ Tuple "foo" $ Ann.leaf $ Just 1
-         , Tuple "ba" $ Ann Nothing $ M.fromFoldable
-           [ Tuple "r" $ Ann.leaf $ Just 2
-           , Tuple "z" $ Ann.leaf $ Just 3
-           ]
-         , Tuple "qux" $ Ann (Just 4) $ M.fromFoldable
-           [ Tuple "x" $ Ann.leaf $ Just 5
-           ]
-         ])
-        $ Trie.toLookupTrie
-          [ Tuple "foo" 1
-          , Tuple "bar" 2
-          , Tuple "baz" 3
-          , Tuple "qux" 4
-          , Tuple "quxx" 5
-          ]
+      let foobar =
+            [ Tuple "foo" 1
+            , Tuple "bar" 2
+            , Tuple "baz" 3
+            , Tuple "qux" 4
+            , Tuple "quxx" 5
+            ]
+      test "toLookupTrie" do
+        Assert.equal
+          (Ann Nothing $ M.fromFoldable
+           [ Tuple "foo" $ Ann.leaf $ Just 1
+           , Tuple "ba" $ Ann Nothing $ M.fromFoldable
+             [ Tuple "r" $ Ann.leaf $ Just 2
+             , Tuple "z" $ Ann.leaf $ Just 3
+             ]
+           , Tuple "qux" $ Ann (Just 4) $ M.fromFoldable
+             [ Tuple "x" $ Ann.leaf $ Just 5
+             ]
+           ])
+          $ Trie.toLookupTrie foobar
+      suite "lookup" do
+        suite "in empty" do
+          test "with empty string" do
+            Assert.equal (Nothing :: Maybe Int)
+              $ Trie.lookup "" Trie.empty
+          test "with not exists key" do
+            Assert.equal (Nothing :: Maybe Int)
+              $ Trie.lookup "a" Trie.empty
+        suite "in root" do
+          test "with empty string" do
+            Assert.equal (Just 1)
+              $ Trie.lookup "" $ Trie.root 1
+          test "with not exists key" do
+            Assert.equal Nothing
+             $ Trie.lookup "a" $ Trie.root 1
+        suite "in singleton" do
+          test "with empty string" do
+            Assert.equal Nothing
+             $ Trie.lookup "" $ Trie.singleton "a" 1
+          test "with key" do
+            Assert.equal (Just 1)
+             $ Trie.lookup "a" $ Trie.singleton "a" 1
+          test "with not exists key" do
+            Assert.equal Nothing
+             $ Trie.lookup "b" $ Trie.singleton "a" 1
+        suite "in foobar" do
+          let trie = Trie.toLookupTrie foobar
+          test "with foo" do
+            Assert.equal (Just 1)
+              $ Trie.lookup "foo" trie
+          test "with bar" do
+            Assert.equal (Just 2)
+              $ Trie.lookup "bar" trie
+          test "with baz" do
+            Assert.equal (Just 3)
+              $ Trie.lookup "baz" trie
+          test "with qux" do
+            Assert.equal (Just 4)
+              $ Trie.lookup "qux" trie
+          test "with quxx" do
+            Assert.equal (Just 5)
+              $ Trie.lookup "quxx" trie
+          test "with non exists key" do
+            Assert.equal Nothing
+              $ Trie.lookup "abcd" trie
