@@ -2,6 +2,7 @@ module Data.Trie where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Annotated (Annotated(..))
 import Data.Annotated as Ann
 import Data.Array as A
@@ -63,36 +64,23 @@ deleteImediateSubTrie k
   = alterImediateSubTrie (const Nothing) k
 
 insert :: forall a. String -> a -> Trie a -> Trie a
-insert k v trie@(Ann _ strMap)
+insert k v trie
   = case k of
     "" -- this is the root key, update root value
       ->  setValue v trie
-    _ -- otherwise, look for a key less than or equal to k
-      -> case M.lookupLE k strMap of
-        Just { key , value: subTrie } -- found a less than or equal key, value
-          -- if k = "bb" , found keys may be [ bb, ba, b, a ]
+    _ -- otherwise, look for equal or nearest key
+      -> case k `lookupNearestSubTrie` trie of
+        Nothing -- trie has no keys, just insert
+          -> setImediateSubTrie k (root v) trie
+        Just { key , value: subTrie } -- found a key
+          -- if k = "bb" , found keys may be [ a, b, ba, bb, bc, bba, bbb, c ]
           -> let { common, rest1, rest2 } = commonPrefix key k -- check commonality
              in case common, rest1, rest2 of
+               "", _, _ -- have nothing in common, insert new trie
+                 -> setImediateSubTrie k (root v) trie
                _, "", restK -- found key is prefix of k, insert restK into sub trie
                  -- equal case is handled here, inserting "" is update value
                  -> updateImediateSubTrie (insert restK v) key trie
-               "", _, _ -- have nothing in common, insert new trie
-                 -> setImediateSubTrie k (root v) trie
-               common, restKey, restk  -- key and k share a prefix, extend level
-                 -> setImediateSubTrie common newTrie
-                    $ deleteImediateSubTrie key
-                    $ trie
-                 where
-                   newTrie
-                     = setImediateSubTrie restk (root v)
-                       $ setImediateSubTrie restKey subTrie
-                       $ empty
-        Nothing -- did not find a less than or equal key, find next greater key
-          -> case M.lookupGT k strMap of
-          Just { key, value: subTrie } -- found next greater keys
-            -- k == bb, found keys may be [ bc bba c ]
-            -> let { common, rest1, rest2 } = commonPrefix key k -- check commonality
-               in case common, rest1, rest2 of
                _, restKey, "" -- k is prefix of found key, extend with value
                  -> setImediateSubTrie k newTrie
                     $ deleteImediateSubTrie key
@@ -101,8 +89,6 @@ insert k v trie@(Ann _ strMap)
                    newTrie
                      = setImediateSubTrie restKey subTrie
                        $ root v
-               "", _, _ -- have nothing in common, insert new trie
-                 -> setImediateSubTrie k (root v) trie
                common, restKey, restk  -- key and k share a prefix, extend level
                  -> setImediateSubTrie common newTrie
                     $ deleteImediateSubTrie key
@@ -112,8 +98,9 @@ insert k v trie@(Ann _ strMap)
                      = setImediateSubTrie restk (root v)
                        $ setImediateSubTrie restKey subTrie
                        $ empty
-          Nothing -- trie has no keys, just insert
-            -> setImediateSubTrie k (root v) trie
+  where
+    lookupNearestSubTrie key (Ann _ strMap)
+      = key `M.lookupLE` strMap <|> key `M.lookupGT` strMap
 
 toLookupTrie :: forall a. Array (Tuple String a) -> Trie a
 toLookupTrie = foldl (\trie (Tuple k v) -> insert k v trie) empty
