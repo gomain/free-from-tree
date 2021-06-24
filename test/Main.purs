@@ -79,6 +79,24 @@ main
                  ]
                ])
               $ Trie.insert "bba" 221 bb22
+          test "bbb222" do
+            Assert.equal
+              (Ann Nothing $ M.fromFoldable
+               [ Tuple "bb" $ Ann (Just 22) $ M.fromFoldable
+                 [ Tuple "b" $ Ann.leaf $Just 222
+                 ]
+               ])
+              $ Trie.insert "bbb" 222 bb22
+          test "bbb222 & b2" do
+            Assert.equal
+              (Ann Nothing $ M.fromFoldable
+               [ Tuple "b" $ Ann (Just 2) $ M.fromFoldable
+                 [ Tuple "b" $ Ann (Just 22) $ M.fromFoldable
+                   [ Tuple "b" $ Ann.leaf $Just 222 ]
+                 ]
+               ])
+              $ Trie.insert "b" 2
+              $ Trie.insert "bbb" 222 bb22
           test "c3" do
             Assert.equal
               (Ann Nothing $ M.fromFoldable
@@ -148,6 +166,76 @@ main
           test "with quxx" do
             Assert.equal (Just 5)
               $ Trie.lookup "quxx" trie
-          test "with non exists key" do
+          test "with not exists key" do
             Assert.equal Nothing
               $ Trie.lookup "abcd" trie
+      suite "delete" do
+        suite "from empty" do
+          test "with empty string" do
+            Assert.equal (Trie.empty :: Trie Int)
+              $ Trie.delete "" Trie.empty
+          test "with not exists key" do
+            Assert.equal (Trie.empty :: Trie Int)
+              $ Trie.delete "a" Trie.empty
+        suite "from root" do
+          let root = Trie.root 1
+          test "with empty string" do
+            Assert.equal Trie.empty
+              $ Trie.delete "" root
+          test "with not exists key" do
+            Assert.equal root
+              $ Trie.delete "a" root
+        suite "from singleton" do
+          let sigleton = Trie.singleton "a" 1
+          test "with key" do
+            Assert.equal Trie.empty
+              $ Trie.delete "a" sigleton
+          test "with not exists key" do
+            Assert.equal sigleton
+              $ Trie.delete "b" sigleton
+        suite "from non common keys trie" do
+          let trie = Trie.toLookupTrie
+                [ Tuple "a" 1
+                , Tuple "b" 2
+                ]
+          test "with key 1" do
+            Assert.equal
+              (Trie.toLookupTrie [ Tuple "b" 2 ])
+              $ Trie.delete "a" trie
+          test "with key 2" do
+            Assert.equal
+              (Trie.toLookupTrie [ Tuple "a" 1 ])
+              $ Trie.delete "b" trie
+          test "with not exists key" do
+            Assert.equal trie
+              $ Trie.delete "c" trie
+        suite "from common keys trie" do
+          let trie = Trie.toLookupTrie
+                [ Tuple "b" 2
+                , Tuple "bb" 22
+                , Tuple "bbb" 222
+                ]
+          test "with key 1" do
+            Assert.equal
+              (Trie.toLookupTrie
+                [ Tuple "bb" 22
+                , Tuple "bbb" 222
+                ])
+              $ Trie.delete "b" trie
+          test "with key 2" do
+            Assert.equal
+              (Trie.toLookupTrie
+                [ Tuple "b" 2
+                , Tuple "bbb" 222
+                ])
+              $ Trie.delete "bb" trie
+          test "with key 3" do
+            Assert.equal
+              (Trie.toLookupTrie
+                [ Tuple "b" 2
+                , Tuple "bb" 22
+                ])
+              $ Trie.delete "bbb" trie
+          test "with not exists key" do
+            Assert.equal trie
+              $ Trie.delete "c" trie
