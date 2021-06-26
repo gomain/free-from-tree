@@ -3,7 +3,7 @@ module Test.Main where
 import Prelude
 
 import Control.Plus as P
-import Data.Annotated (Annotated(..))
+import Data.Annotated.Internal (Annotated(..))
 import Data.Annotated as Ann
 import Data.Map as M
 import Data.Maybe (Maybe(..))

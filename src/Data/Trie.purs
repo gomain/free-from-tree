@@ -11,14 +11,13 @@ module Data.Trie
 
 import Prelude
 
-import Control.Alt ((<|>))
-import Data.Annotated (Annotated(..))
+import Data.Annotated (Annotated)
 import Data.Annotated as Ann
 import Data.Array as A
-import Data.Bifunctor (lmap)
-import Data.Foldable (foldl)
+import Data.Foldable (foldl, oneOfMap)
 import Data.Map (Map)
-import Data.Map as M
+import Data.Map (delete, fromFoldable, insert, lookup, singleton, union) as M
+import Data.Map.Extras (lookupLEGT, mapKeys) as M
 import Data.Maybe (Maybe(..))
 import Data.String.CodeUnits as S
 import Data.Tuple (Tuple(..))
@@ -45,123 +44,70 @@ commonPrefix s1 s2
       = if ch1 == ch2 then { common: common <> S.singleton ch1, rest1, rest2 }
         else { common, rest1: rest1 <> S.singleton ch1, rest2: rest2 <> S.singleton ch2 }
 
-setValue :: forall a. a -> Trie a -> Trie a
-setValue v (Ann _ strMap) = Ann (Just v) strMap
-
 root :: forall a. a -> Trie a
-root v = setValue v empty
-
-alterImediateSubTrie :: forall a. (Maybe (Trie a) -> Maybe (Trie a))
-                        -> String -> Trie a -> Trie a
-alterImediateSubTrie f k (Ann a strMap)
-  = Ann a $ M.alter f k strMap
-
-updateImediateSubTrie :: forall a. (Trie a -> Trie a)
-                             -> String -> Trie a -> Trie a
-updateImediateSubTrie f k
-  = alterImediateSubTrie (map f) k
-
-setImediateSubTrie :: forall a. String -> Trie a -> Trie a -> Trie a
-setImediateSubTrie k trie
-  = alterImediateSubTrie (const $ Just trie) k
-
-deleteImediateSubTrie :: forall a. String -> Trie a -> Trie a
-deleteImediateSubTrie k
-  = alterImediateSubTrie (const Nothing) k
+root = Ann.leaf <<< Just
 
 insert :: forall a. String -> a -> Trie a -> Trie a
 insert k v trie
   = case k of
-    "" -- this is the root key, update root value
-      ->  setValue v trie
-    _ -- otherwise, look for equal or nearest key
-      -> case k `lookupNearestSubTrie` trie of
-        Nothing -- trie has no keys, just insert
-          -> setImediateSubTrie k (root v) trie
-        Just { key , value: subTrie } -- found a key
-          -- if k = "bb" , found keys may be [ a, b, ba, bb, bc, bba, bbb, c ]
-          -> let { common, rest1, rest2 } = commonPrefix key k -- check commonality
-             in case common, rest1, rest2 of
-               "", _, _ -- have nothing in common, insert new trie
-                 -> setImediateSubTrie k (root v) trie
-               _, "", restK -- found key is prefix of k, insert restK into sub trie
-                 -- equal case is handled here, inserting "" is update value
-                 -> updateImediateSubTrie (insert restK v) key trie
-               _, restKey, "" -- k is prefix of found key, extend with value
-                 -> setImediateSubTrie k newTrie
-                    $ deleteImediateSubTrie key
-                    $ trie
-                 where
-                   newTrie
-                     = setValue v
-                       $ setImediateSubTrie restKey subTrie
-                       $ empty
-               common, restKey, restk  -- key and k share a prefix, extend level
-                 -> setImediateSubTrie common newTrie
-                    $ deleteImediateSubTrie key
-                    $ trie
-                 where
-                   newTrie
-                     = setImediateSubTrie restk (root v)
-                       $ setImediateSubTrie restKey subTrie
-                       $ empty
-
-lookupNearestSubTrie :: forall a. String -> Trie a -> Maybe { key :: String, value :: Trie a }
-lookupNearestSubTrie key (Ann _ strMap)
-  = key `M.lookupLE` strMap <|> key `M.lookupGT` strMap
+    ""
+      -> Ann.setHead (Just v) trie
+    _
+      -> flip Ann.mapTail trie \children ->
+        case M.lookupLEGT k children of
+          Nothing
+            -> M.insert k (root v) children
+          Just { key, value: subTrie }
+            -> let { common, rest1, rest2 } = commonPrefix key k
+               in case common, rest1, rest2 of
+                 "", _, _
+                   -> M.insert k (root v) children
+                 _, "", k'
+                   -> M.insert key (insert k' v subTrie) children
+                 _, key', ""
+                   -> M.insert k (Ann.branch (Just v) $ M.singleton key' subTrie)
+                        $ M.delete key
+                        $ children
+                 c, key', k'
+                   -> M.insert c (Ann.branch Nothing $ M.fromFoldable
+                          [ Tuple key' subTrie
+                          , Tuple k' $ root v
+                          ])
+                        $ M.delete key
+                        $ children
 
 toLookupTrie :: forall a. Array (Tuple String a) -> Trie a
 toLookupTrie = foldl (\trie (Tuple k v) -> insert k v trie) empty
-
-value :: forall a. Trie a -> Maybe a
-value (Ann v _) = v
-
-lookupImediateSubTrie :: forall a. String -> Trie a -> Maybe (Trie a)
-lookupImediateSubTrie k (Ann _ strMap)
-  = M.lookup k strMap
 
 lookup :: forall a. String -> Trie a -> Maybe a
 lookup k trie
   = case k of
     ""
-      -> value trie
+      -> Ann.head trie
     _
       -> let allSplits = map (\i -> S.splitAt i k) $ A.range 0 $ S.length k
-         in foldl (\found try -> found <|> try) Nothing
-            $ allSplits <#> \{ before, after } -> do
-              subTrie <- lookupImediateSubTrie before trie
-              lookup after subTrie
-
-deleteValue :: forall a. Trie a -> Trie a
-deleteValue (Ann _ strMap)
-  = Ann Nothing strMap
-
-mapKey :: forall k l v. Ord l => (k -> l) -> Map k v -> Map l v
-mapKey f = M.fromFoldable <<< map (lmap f) <<< (M.toUnfoldable :: _ -> Array _)
-
-removeImediateSubTrie :: forall a. String -> Trie a -> Trie a
-removeImediateSubTrie k trie@(Ann a strMap)
-  = case k `M.lookup` strMap of
-    Nothing
-      -> trie
-    Just (Ann _ subStrMap)
-      -> Ann a $ mapKey (k <> _) subStrMap `M.union` M.delete k strMap
+         in flip oneOfMap allSplits \{ before, after } -> do
+           subTrie <- M.lookup before $ Ann.tail trie
+           lookup after subTrie
 
 delete :: forall a. String -> Trie a -> Trie a
 delete k trie
   = case k of
-    "" -- case1: trie is root, can't remove, set value to Nothing
-      -> deleteValue trie
-    _ -- otherwise, look for equal or nearest key
-      -> case k `lookupNearestSubTrie` trie of
-        Nothing -- trie has no keys, we're done
-          -> trie
-        Just { key } -- found a key
-          -> let { rest1, rest2 } = commonPrefix key k
-             in case rest1, rest2 of
-               "", "" -- equal, remove this trie
-                 -> removeImediateSubTrie k trie
-               "", restK -- found key is prefix of k, delete in sub trie
-                 -> updateImediateSubTrie (delete restK) key trie
-               _, _ -- we're done
-                 -> trie
+    "" -- root key
+      -> Ann.setHead Nothing trie
+    _
+      -> flip Ann.mapTail trie \children ->
+        case M.lookupLEGT k children of
+          Nothing
+            -> children
+          Just { key, value: subTrie }
+            -> let { rest1, rest2 } = commonPrefix key k
+               in case rest1, rest2 of
+                 "", "" -- equal, it's this trie
+                   -> M.union
+                        (M.mapKeys (k <> _) $ Ann.tail subTrie)
+                        $ M.delete k children
+                 "", restK -- possibly in subTrie
+                   -> M.insert key (delete restK subTrie) children
+                 _, _
+                   -> children
