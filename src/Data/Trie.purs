@@ -7,6 +7,8 @@ module Data.Trie
        , insert
        , lookup
        , delete
+       , update
+       , update'
        ) where
 
 import Prelude
@@ -27,57 +29,48 @@ type StrMap = Map String
 type Trie a = Annotated StrMap (Maybe a)
 
 empty :: forall a. Trie a
-empty = Ann.leaf Nothing
+empty
+  = Ann.leaf Nothing
 
 singleton :: forall a. String -> a -> Trie a
-singleton k v = insert k v empty
+singleton k v
+  = insert k v empty
 
 commonPrefix :: String -> String -> { common :: String, rest1 :: String, rest2 :: String }
 commonPrefix s1 s2
   = let
-    s1rest = S.drop (S.length s2) s1
-    s2rest = S.drop (S.length s1) s2
-    common = foldl collect { common: "", rest1: "", rest2: "" } $ A.zip (S.toCharArray s1) (S.toCharArray s2)
-    in common { rest1 = common.rest1 <> s1rest, rest2 = common.rest2 <> s2rest }
+      s1rest = S.drop (S.length s2) s1
+      s2rest = S.drop (S.length s1) s2
+      zipped =  A.zip (S.toCharArray s1) (S.toCharArray s2)
+      common = foldl collect { common: "", rest1: "", rest2: "" } zipped
+    in common
+         { rest1 = common.rest1 <> s1rest
+         , rest2 = common.rest2 <> s2rest
+         }
   where
     collect { common, rest1, rest2 } (Tuple ch1 ch2)
-      = if ch1 == ch2 then { common: common <> S.singleton ch1, rest1, rest2 }
-        else { common, rest1: rest1 <> S.singleton ch1, rest2: rest2 <> S.singleton ch2 }
+      = if ch1 == ch2 then
+          { common: common <> S.singleton ch1
+          , rest1
+          , rest2
+          }
+        else
+          { common
+          , rest1: rest1 <> S.singleton ch1
+          , rest2: rest2 <> S.singleton ch2
+          }
 
 root :: forall a. a -> Trie a
-root = Ann.leaf <<< Just
+root
+  = Ann.leaf <<< Just
 
 insert :: forall a. String -> a -> Trie a -> Trie a
-insert k v trie
-  = case k of
-    ""
-      -> Ann.setHead (Just v) trie
-    _
-      -> flip Ann.mapTail trie \children ->
-        case M.lookupLEGT k children of
-          Nothing
-            -> M.insert k (root v) children
-          Just { key, value: subTrie }
-            -> let { common, rest1, rest2 } = commonPrefix key k
-               in case common, rest1, rest2 of
-                 "", _, _
-                   -> M.insert k (root v) children
-                 _, "", k'
-                   -> M.insert key (insert k' v subTrie) children
-                 _, key', ""
-                   -> M.insert k (Ann.branch (Just v) $ M.singleton key' subTrie)
-                        $ M.delete key
-                        $ children
-                 c, key', k'
-                   -> M.insert c (Ann.branch Nothing $ M.fromFoldable
-                          [ Tuple key' subTrie
-                          , Tuple k' $ root v
-                          ])
-                        $ M.delete key
-                        $ children
+insert k v
+  = update (const <<< Just $ v) k
 
 toLookupTrie :: forall a. Array (Tuple String a) -> Trie a
-toLookupTrie = foldl (\trie (Tuple k v) -> insert k v trie) empty
+toLookupTrie
+  = foldl (\trie (Tuple k v) -> insert k v trie) empty
 
 lookup :: forall a. String -> Trie a -> Maybe a
 lookup k trie
@@ -91,23 +84,56 @@ lookup k trie
            lookup after subTrie
 
 delete :: forall a. String -> Trie a -> Trie a
-delete k trie
+delete k
+  = update (const Nothing) k
+
+update :: forall a. (Maybe a -> Maybe a) -> String -> Trie a -> Trie a
+update f k trie
   = case k of
-    "" -- root key
-      -> Ann.setHead Nothing trie
+    ""
+      -> Ann.mapHead f trie
     _
       -> flip Ann.mapTail trie \children ->
         case M.lookupLEGT k children of
           Nothing
-            -> children
+            -> case f Nothing of
+              Nothing
+                -> children
+              just
+                -> M.insert k (Ann.leaf just) children
           Just { key, value: subTrie }
-            -> let { rest1, rest2 } = commonPrefix key k
-               in case rest1, rest2 of
-                 "", "" -- equal, it's this trie
-                   -> M.union
-                        (M.mapKeys (k <> _) $ Ann.tail subTrie)
-                        $ M.delete k children
-                 "", restK -- possibly in subTrie
-                   -> M.insert key (delete restK subTrie) children
-                 _, _
-                   -> children
+            -> let { common, rest1, rest2 } = commonPrefix k key -- "abcd"
+               in case common, rest1, rest2 of
+                 _, "", "" -- "abcd"
+                   -> case f $ Ann.head subTrie of
+                     Nothing -- remove sub trie
+                       -> M.union
+                            (M.mapKeys (k <> _) $ Ann.tail subTrie)
+                            $ M.delete k children
+                     just
+                       -> M.insert k (Ann.setHead just subTrie) children
+                 _, k', "" -- "ab"
+                   -> M.insert key (update f k' subTrie) children
+                 _, _, _
+                   -> case f Nothing of
+                     Nothing
+                       -> children
+                     just
+                       -> case common, rest1 , rest2 of
+                         "", _, _ -- "ef"
+                           -> M.insert k (Ann.leaf just) children
+                         _, "", key' -- "abcdef"
+                           -> M.insert k (Ann.branch just $ M.singleton key' subTrie)
+                                $ M.delete key
+                                $ children
+                         c, k', key' -- "abef"
+                           -> M.insert c (Ann.branch Nothing $ M.fromFoldable
+                                  [ Tuple key' subTrie
+                                  , Tuple k' $ Ann.leaf just
+                                  ])
+                                $ M.delete key
+                                $ children
+
+update' :: forall a. (a -> a) -> String -> Trie a -> Trie a
+update' f
+  = update $ map f
