@@ -104,6 +104,10 @@ main
                , Tuple "c" $ Ann.leaf $ Just 3
                ])
               $ Trie.insert "c" 3 bb22
+          test "bb44" do
+            Assert.equal
+              (Ann Nothing $ M.singleton "bb" $ Ann.leaf $ Just 44)
+              $ Trie.insert "bb" 44 bb22
       let foobar =
             [ Tuple "foo" 1
             , Tuple "bar" 2
@@ -111,19 +115,20 @@ main
             , Tuple "qux" 4
             , Tuple "quxx" 5
             ]
-      test "toLookupTrie" do
-        Assert.equal
-          (Ann Nothing $ M.fromFoldable
-           [ Tuple "foo" $ Ann.leaf $ Just 1
-           , Tuple "ba" $ Ann Nothing $ M.fromFoldable
-             [ Tuple "r" $ Ann.leaf $ Just 2
-             , Tuple "z" $ Ann.leaf $ Just 3
-             ]
-           , Tuple "qux" $ Ann (Just 4) $ M.fromFoldable
-             [ Tuple "x" $ Ann.leaf $ Just 5
-             ]
-           ])
-          $ Trie.toLookupTrie foobar
+      suite "toLookupTrie" do
+        test "foobar" do
+          Assert.equal
+            (Ann Nothing $ M.fromFoldable
+             [ Tuple "foo" $ Ann.leaf $ Just 1
+             , Tuple "ba" $ Ann Nothing $ M.fromFoldable
+               [ Tuple "r" $ Ann.leaf $ Just 2
+               , Tuple "z" $ Ann.leaf $ Just 3
+               ]
+             , Tuple "qux" $ Ann (Just 4) $ M.fromFoldable
+               [ Tuple "x" $ Ann.leaf $ Just 5
+               ]
+             ])
+            $ Trie.toLookupTrie foobar
       suite "lookup" do
         suite "in empty" do
           test "with empty string" do
@@ -236,6 +241,10 @@ main
                 , Tuple "bb" 22
                 ])
               $ Trie.delete "bbb" trie
-          test "with not exists key" do
-            Assert.equal trie
-              $ Trie.delete "c" trie
+          suite "with not exists key" do
+            test "non related key" do
+              Assert.equal trie
+                $ Trie.delete "c" trie
+            test "key shares prefix with existing" do
+              Assert.equal trie
+                $ Trie.delete "bc" trie
