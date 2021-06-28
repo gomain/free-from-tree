@@ -1,16 +1,16 @@
 module Data.Tree where
 
-import Data.AST (AST)
-import Data.AST as AST
+import Data.Free (Free)
+import Data.Free as F
 import Data.Pair (Pair(..))
 
-type Tree a = AST Pair a
+type Tree a = Free Pair a
 
 leaf :: forall a. a -> Tree a
-leaf = AST.leaf
+leaf = F.leaf
 
 branch :: forall a. Tree a -> Tree a -> Tree a
-branch = AST.branchWith2 Pair
+branch = F.branchWith2 Pair
 
 --|           .
 --|         /   \

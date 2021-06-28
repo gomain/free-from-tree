@@ -2,10 +2,10 @@ module Data.MyLang where
 
 import Prelude hiding (apply)
 
-import Data.AST (AST)
-import Data.AST as AST
+import Data.Free (Free)
+import Data.Free as F
 
-type MyLang = AST Operation Term
+type MyLang = Free Operation Term
 
 type Identifier = String
 
@@ -36,19 +36,19 @@ instance Show Term where
   show (Num number) = show number
 
 letIn :: Identifier -> MyLang -> MyLang -> MyLang
-letIn ident = AST.branchWith2 $ LetIn ident
+letIn ident = F.branchWith2 $ LetIn ident
 
 function :: Identifier -> MyLang -> MyLang
-function ident = AST.branchWith1 $ Function ident
+function ident = F.branchWith1 $ Function ident
 
 apply :: MyLang -> MyLang -> MyLang
-apply = AST.branchWith2 Apply
+apply = F.branchWith2 Apply
 
 var :: Identifier -> MyLang
-var = AST.leaf <<< Var
+var = F.leaf <<< Var
 
 num :: Number -> MyLang
-num = AST.leaf <<< Num
+num = F.leaf <<< Num
 
 --| let addOne = \x -> x + 1
 --| in addOne 2
