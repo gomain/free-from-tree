@@ -13,8 +13,8 @@ module Data.Trie
 
 import Prelude
 
-import Data.Annotated (Annotated)
-import Data.Annotated as Ann
+import Data.Cofree (Cofree)
+import Data.Cofree as CF
 import Data.Array as A
 import Data.Foldable (foldl, oneOfMap)
 import Data.Map (Map)
@@ -26,11 +26,11 @@ import Data.Tuple (Tuple(..))
 
 type StrMap = Map String
 
-type Trie a = Annotated StrMap (Maybe a)
+type Trie a = Cofree StrMap (Maybe a)
 
 empty :: forall a. Trie a
 empty
-  = Ann.leaf Nothing
+  = CF.leaf Nothing
 
 singleton :: forall a. String -> a -> Trie a
 singleton k v
@@ -62,7 +62,7 @@ commonPrefix s1 s2
 
 root :: forall a. a -> Trie a
 root
-  = Ann.leaf <<< Just
+  = CF.leaf <<< Just
 
 insert :: forall a. String -> a -> Trie a -> Trie a
 insert k v
@@ -76,11 +76,11 @@ lookup :: forall a. String -> Trie a -> Maybe a
 lookup k trie
   = case k of
     ""
-      -> Ann.head trie
+      -> CF.head trie
     _
       -> let allSplits = map (\i -> S.splitAt i k) $ A.range 0 $ S.length k
          in flip oneOfMap allSplits \{ before, after } -> do
-           subTrie <- M.lookup before $ Ann.tail trie
+           subTrie <- M.lookup before $ CF.tail trie
            lookup after subTrie
 
 delete :: forall a. String -> Trie a -> Trie a
@@ -91,27 +91,27 @@ update :: forall a. (Maybe a -> Maybe a) -> String -> Trie a -> Trie a
 update f k trie
   = case k of
     ""
-      -> Ann.mapHead f trie
+      -> CF.mapHead f trie
     _
-      -> flip Ann.mapTail trie \children ->
+      -> flip CF.mapTail trie \children ->
         case M.lookupLEGT k children of
           Nothing
             -> case f Nothing of
               Nothing
                 -> children
               just
-                -> M.insert k (Ann.leaf just) children
+                -> M.insert k (CF.leaf just) children
           Just { key, value: subTrie }
             -> let { common, rest1, rest2 } = commonPrefix k key -- "abcd"
                in case common, rest1, rest2 of
                  _, "", "" -- "abcd"
-                   -> case f $ Ann.head subTrie of
+                   -> case f $ CF.head subTrie of
                      Nothing -- remove sub trie
                        -> M.union
-                            (M.mapKeys (k <> _) $ Ann.tail subTrie)
+                            (M.mapKeys (k <> _) $ CF.tail subTrie)
                             $ M.delete k children
                      just
-                       -> M.insert k (Ann.setHead just subTrie) children
+                       -> M.insert k (CF.setHead just subTrie) children
                  _, k', "" -- "ab"
                    -> M.insert key (update f k' subTrie) children
                  _, _, _
@@ -121,15 +121,15 @@ update f k trie
                      just
                        -> case common, rest1 , rest2 of
                          "", _, _ -- "ef"
-                           -> M.insert k (Ann.leaf just) children
+                           -> M.insert k (CF.leaf just) children
                          _, "", key' -- "abcdef"
-                           -> M.insert k (Ann.branch just $ M.singleton key' subTrie)
+                           -> M.insert k (CF.branch just $ M.singleton key' subTrie)
                                 $ M.delete key
                                 $ children
                          c, k', key' -- "abef"
-                           -> M.insert c (Ann.branch Nothing $ M.fromFoldable
+                           -> M.insert c (CF.branch Nothing $ M.fromFoldable
                                   [ Tuple key' subTrie
-                                  , Tuple k' $ Ann.leaf just
+                                  , Tuple k' $ CF.leaf just
                                   ])
                                 $ M.delete key
                                 $ children

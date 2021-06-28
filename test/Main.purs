@@ -3,8 +3,8 @@ module Test.Main where
 import Prelude
 
 import Control.Plus as P
-import Data.Annotated.Internal (Annotated(..))
-import Data.Annotated as Ann
+--import Data.Annotated.Internal (Annotated(..))
+import Data.Cofree as CF
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Trie (Trie)
@@ -21,92 +21,92 @@ main
     suite "trie" do
       test "empty" do
         Assert.equal
-          (Ann Nothing P.empty)
+          (CF.branch Nothing P.empty)
           $ (Trie.empty :: Trie Int)
       test "singleton" do
         Assert.equal
-          (Ann Nothing $ M.singleton "a" $ Ann.leaf $ Just 1)
+          (CF.branch Nothing $ M.singleton "a" $ CF.leaf $ Just 1)
           $ Trie.singleton "a" 1
       suite "insert" do
         test "into empty" do
           Assert.equal
-            (Ann Nothing $ M.singleton "a" $ Ann.leaf $ Just 1)
+            (CF.branch Nothing $ M.singleton "a" $ CF.leaf $ Just 1)
             $ Trie.insert "a" 1 Trie.empty
         suite "into bb22" do
-          let bb22 = Ann Nothing $ M.singleton "bb" $ Ann.leaf $ Just 22
+          let bb22 = CF.branch Nothing $ M.singleton "bb" $ CF.leaf $ Just 22
           test "bb1" do
             Assert.equal
-              (Ann Nothing $ M.singleton "bb" $ Ann.leaf $ Just 1)
+              (CF.branch Nothing $ M.singleton "bb" $ CF.leaf $ Just 1)
               $ Trie.insert "bb" 1 bb22
           test "ba21" do
             Assert.equal
-              (Ann Nothing $ M.fromFoldable
-               [ Tuple "b" $ Ann Nothing $ M.fromFoldable
-                 [ Tuple "a" $ Ann.leaf $ Just 21
-                 , Tuple "b" $ Ann.leaf $ Just 22
+              (CF.branch Nothing $ M.fromFoldable
+               [ Tuple "b" $ CF.branch Nothing $ M.fromFoldable
+                 [ Tuple "a" $ CF.leaf $ Just 21
+                 , Tuple "b" $ CF.leaf $ Just 22
                  ]
                ])
               $ Trie.insert "ba" 21 bb22
           test "b2" do
             Assert.equal
-              (Ann Nothing $ M.fromFoldable
-               [ Tuple "b" $ Ann (Just 2) $ M.fromFoldable
-                 [ Tuple "b" $ Ann.leaf $ Just 22
+              (CF.branch Nothing $ M.fromFoldable
+               [ Tuple "b" $ CF.branch (Just 2) $ M.fromFoldable
+                 [ Tuple "b" $ CF.leaf $ Just 22
                  ]
                ])
               $ Trie.insert "b" 2 bb22
           test "a1" do
             Assert.equal
-              (Ann Nothing $ M.fromFoldable
-               [ Tuple "a" $ Ann.leaf $ Just 1
-               , Tuple "bb" $ Ann.leaf $ Just 22
+              (CF.branch Nothing $ M.fromFoldable
+               [ Tuple "a" $ CF.leaf $ Just 1
+               , Tuple "bb" $ CF.leaf $ Just 22
                ])
               $ Trie.insert "a" 1 bb22
           test "bc23" do
             Assert.equal
-              (Ann Nothing $ M.fromFoldable
-               [ Tuple "b" $ Ann Nothing $ M.fromFoldable
-                 [ Tuple "b" $ Ann.leaf $ Just 22
-                 , Tuple "c" $ Ann.leaf $ Just 23
+              (CF.branch Nothing $ M.fromFoldable
+               [ Tuple "b" $ CF.branch Nothing $ M.fromFoldable
+                 [ Tuple "b" $ CF.leaf $ Just 22
+                 , Tuple "c" $ CF.leaf $ Just 23
                  ]
                ])
               $ Trie.insert "bc" 23 bb22
           test "bba221" do
             Assert.equal
-              (Ann Nothing $ M.fromFoldable
-               [ Tuple "bb" $ Ann (Just 22) $ M.fromFoldable
-                 [ Tuple "a" $ Ann.leaf $Just 221
+              (CF.branch Nothing $ M.fromFoldable
+               [ Tuple "bb" $ CF.branch (Just 22) $ M.fromFoldable
+                 [ Tuple "a" $ CF.leaf $Just 221
                  ]
                ])
               $ Trie.insert "bba" 221 bb22
           test "bbb222" do
             Assert.equal
-              (Ann Nothing $ M.fromFoldable
-               [ Tuple "bb" $ Ann (Just 22) $ M.fromFoldable
-                 [ Tuple "b" $ Ann.leaf $Just 222
+              (CF.branch Nothing $ M.fromFoldable
+               [ Tuple "bb" $ CF.branch (Just 22) $ M.fromFoldable
+                 [ Tuple "b" $ CF.leaf $Just 222
                  ]
                ])
               $ Trie.insert "bbb" 222 bb22
           test "bbb222 & b2" do
             Assert.equal
-              (Ann Nothing $ M.fromFoldable
-               [ Tuple "b" $ Ann (Just 2) $ M.fromFoldable
-                 [ Tuple "b" $ Ann (Just 22) $ M.fromFoldable
-                   [ Tuple "b" $ Ann.leaf $Just 222 ]
+              (CF.branch Nothing $ M.fromFoldable
+               [ Tuple "b" $ CF.branch (Just 2) $ M.fromFoldable
+                 [ Tuple "b" $ CF.branch (Just 22) $ M.fromFoldable
+                   [ Tuple "b" $ CF.leaf $Just 222 ]
                  ]
                ])
               $ Trie.insert "b" 2
               $ Trie.insert "bbb" 222 bb22
           test "c3" do
             Assert.equal
-              (Ann Nothing $ M.fromFoldable
-               [ Tuple "bb" $ Ann.leaf $ Just 22
-               , Tuple "c" $ Ann.leaf $ Just 3
+              (CF.branch Nothing $ M.fromFoldable
+               [ Tuple "bb" $ CF.leaf $ Just 22
+               , Tuple "c" $ CF.leaf $ Just 3
                ])
               $ Trie.insert "c" 3 bb22
           test "bb44" do
             Assert.equal
-              (Ann Nothing $ M.singleton "bb" $ Ann.leaf $ Just 44)
+              (CF.branch Nothing $ M.singleton "bb" $ CF.leaf $ Just 44)
               $ Trie.insert "bb" 44 bb22
       let foobar =
             [ Tuple "foo" 1
@@ -118,14 +118,14 @@ main
       suite "toLookupTrie" do
         test "foobar" do
           Assert.equal
-            (Ann Nothing $ M.fromFoldable
-             [ Tuple "foo" $ Ann.leaf $ Just 1
-             , Tuple "ba" $ Ann Nothing $ M.fromFoldable
-               [ Tuple "r" $ Ann.leaf $ Just 2
-               , Tuple "z" $ Ann.leaf $ Just 3
+            (CF.branch Nothing $ M.fromFoldable
+             [ Tuple "foo" $ CF.leaf $ Just 1
+             , Tuple "ba" $ CF.branch Nothing $ M.fromFoldable
+               [ Tuple "r" $ CF.leaf $ Just 2
+               , Tuple "z" $ CF.leaf $ Just 3
                ]
-             , Tuple "qux" $ Ann (Just 4) $ M.fromFoldable
-               [ Tuple "x" $ Ann.leaf $ Just 5
+             , Tuple "qux" $ CF.branch (Just 4) $ M.fromFoldable
+               [ Tuple "x" $ CF.leaf $ Just 5
                ]
              ])
             $ Trie.toLookupTrie foobar
