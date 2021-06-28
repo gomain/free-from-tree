@@ -2,10 +2,10 @@ module Data.Math where
 
 import Prelude hiding (add, sub, mul, div)
 
-import Data.AST (AST)
-import Data.AST as AST
+import Data.Free (Free)
+import Data.Free as F
 
-type Math a = AST Operation a
+type Math a = Free Operation a
 
 data Operation a
   = Add a a
@@ -31,22 +31,22 @@ instance Functor Operation where
   map f (Neg e) = Neg (f e)
 
 lit :: forall a. a -> Math a
-lit = AST.leaf
+lit = F.leaf
 
 add :: forall a. Math a -> Math a -> Math a
-add = AST.branchWith2 Add
+add = F.branchWith2 Add
 
 sub :: forall a. Math a -> Math a -> Math a
-sub = AST.branchWith2 Sub
+sub = F.branchWith2 Sub
 
 mul :: forall a. Math a -> Math a -> Math a
-mul = AST.branchWith2 Mul
+mul = F.branchWith2 Mul
 
 div :: forall a. Math a -> Math a -> Math a
-div = AST.branchWith2 Div
+div = F.branchWith2 Div
 
 neg :: forall a. Math a -> Math a
-neg = AST.branchWith1 Neg
+neg = F.branchWith1 Neg
 
 --|          (+)
 --|         /   \
